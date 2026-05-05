@@ -1,0 +1,9 @@
+{
+	"id": "obsidian-image-referer",
+	"name": "Image Referer",
+	"version": "0.1.0",
+	"minAppVersion": "0.15.0",
+	"description": "Inject custom Referer header for remote image requests, solving image loading issues with referer-checking image hosts.",
+	"author": "",
+	"isDesktopOnly": true
+}
