@@ -1,6 +1,7 @@
 import { Plugin } from "obsidian";
 import { DEFAULT_SETTINGS, ImageRefererSettings, ImageRefererSettingTab } from "./settings";
 import { registerRefererInterceptor, unregisterRefererInterceptor } from "./referer";
+import { resolveReferer } from "./domain-matcher";
 
 export default class ImageRefererPlugin extends Plugin {
 	settings: ImageRefererSettings;
@@ -13,7 +14,9 @@ export default class ImageRefererPlugin extends Plugin {
 		this.addSettingTab(new ImageRefererSettingTab(this.app, this));
 		console.debug("[ImageReferer] Settings tab registered");
 
-		registerRefererInterceptor(this, () => this.settings.referer);
+		registerRefererInterceptor(this, (url: string) => {
+			return resolveReferer(url, this.settings.domainRules, this.settings.referer);
+		});
 		console.debug("[ImageReferer] Plugin loaded");
 	}
 

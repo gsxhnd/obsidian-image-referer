@@ -9,6 +9,7 @@ const processedImgs = new WeakSet<HTMLImageElement>();
 const urlCache = new Map<string, string>();
 const inflight = new Set<string>();
 let activeCount = 0;
+let getRefererForUrl: ((url: string) => string) | null = null;
 
 function isRemoteUrl(src: string): boolean {
 	return src.startsWith("http://") || src.startsWith("https://");
@@ -45,19 +46,20 @@ function fetchAndSet(img: HTMLImageElement, src: string, referer: string): void 
 		});
 }
 
-function interceptImage(img: HTMLImageElement, referer: string): void {
+function interceptImage(img: HTMLImageElement): void {
 	if (processedImgs.has(img)) return;
 
 	const src = img.src || img.getAttribute("src");
 	if (!src || !isRemoteUrl(src)) return;
 
 	processedImgs.add(img);
-	console.warn("[ImageReferer] Intercepting:", src.substring(0, 100));
+
+	const referer = getRefererForUrl ? getRefererForUrl(src) : "";
+	if (!referer) return;
 
 	const cached = urlCache.get(src);
 	if (cached) {
 		img.src = cached;
-		console.warn("[ImageReferer] Cache hit:", src.substring(0, 100));
 		return;
 	}
 
@@ -78,25 +80,25 @@ function interceptImage(img: HTMLImageElement, referer: string): void {
 	fetchAndSet(img, src, referer);
 }
 
-function scanImages(referer: string): void {
-	if (!referer) return;
+function scanImages(): void {
 	document.querySelectorAll<HTMLImageElement>(
 		"img[src^='http://'], img[src^='https://']"
-	).forEach(img => interceptImage(img, referer));
+	).forEach(img => interceptImage(img));
 }
 
 export function registerRefererInterceptor(
 	_plugin: Plugin,
-	getReferer: () => string,
+	_resolveReferer: (url: string) => string,
 ): void {
 	console.warn("[ImageReferer] DOM interceptor starting...");
+	getRefererForUrl = _resolveReferer;
 
-	scanImages(getReferer());
+	scanImages();
 
 	observer = new MutationObserver(() => {
 		if (debounceTimer) clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
-			scanImages(getReferer());
+			scanImages();
 		}, 150);
 	});
 
@@ -111,6 +113,7 @@ export function registerRefererInterceptor(
 }
 
 export function unregisterRefererInterceptor(): void {
+	getRefererForUrl = null;
 	if (observer) {
 		observer.disconnect();
 		observer = null;
