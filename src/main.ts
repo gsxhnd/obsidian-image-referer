@@ -15,8 +15,8 @@ export default class ImageRefererPlugin extends Plugin {
 		console.debug("[ImageReferer] Settings tab registered");
 
 		registerRefererInterceptor(this, (url: string) => {
-			return resolveReferer(url, this.settings.domainRules, this.settings.referer);
-		});
+			return resolveReferer(url, this.settings.domainRules);
+		}, this.settings.diagnosticMode);
 		console.debug("[ImageReferer] Plugin loaded");
 	}
 
@@ -30,6 +30,11 @@ export default class ImageRefererPlugin extends Plugin {
 		const data: unknown = await this.loadData();
 		console.debug("[ImageReferer] loadData from disk:", data);
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data as Partial<ImageRefererSettings>);
+		for (const rule of this.settings.domainRules) {
+			if (rule.enabled === undefined) {
+				rule.enabled = true;
+			}
+		}
 	}
 
 	async saveSettings() {

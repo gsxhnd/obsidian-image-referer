@@ -4,16 +4,17 @@ import type ImageRefererPlugin from "./main";
 export interface DomainRule {
 	domain: string;
 	referer: string;
+	enabled: boolean;
 }
 
 export interface ImageRefererSettings {
-	referer: string;
 	domainRules: DomainRule[];
+	diagnosticMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: ImageRefererSettings = {
-	referer: "",
 	domainRules: [],
+	diagnosticMode: false,
 };
 
 export class ImageRefererSettingTab extends PluginSettingTab {
@@ -28,17 +29,6 @@ export class ImageRefererSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 
 		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName("Default referer")
-			.setDesc("Fallback referer value for images that don't match any domain rule.")
-			.addText(text => text
-				.setPlaceholder("https://example.com")
-				.setValue(this.plugin.settings.referer)
-				.onChange(async (value) => {
-					this.plugin.settings.referer = value;
-					await this.plugin.saveSettings();
-				}));
 
 		new Setting(containerEl)
 			.setName("Domain rules")
@@ -57,6 +47,13 @@ export class ImageRefererSettingTab extends PluginSettingTab {
 
 				new Setting(ruleEl)
 					.setName(`Rule ${index + 1}`)
+					.addToggle(toggle => toggle
+						.setValue(rule.enabled)
+						.setTooltip("Enable/disable this rule")
+						.onChange(async (value) => {
+							rule.enabled = value;
+							await this.plugin.saveSettings();
+						}))
 					.addText(text => text
 						.setPlaceholder("Domain: i.imgur.com or *.imgur.com")
 						.setValue(rule.domain)
@@ -91,9 +88,23 @@ export class ImageRefererSettingTab extends PluginSettingTab {
 				.setButtonText("Add rule")
 				.setCta()
 				.onClick(async () => {
-					this.plugin.settings.domainRules.push({ domain: "", referer: "" });
+					this.plugin.settings.domainRules.push({
+						domain: "",
+						referer: "",
+						enabled: true,
+					});
 					await this.plugin.saveSettings();
 					renderRules();
+				}));
+
+		new Setting(containerEl)
+			.setName("Diagnostic mode")
+			.setDesc("Show notices when image fetches fail, including the domain and referer used.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.diagnosticMode)
+				.onChange(async (value) => {
+					this.plugin.settings.diagnosticMode = value;
+					await this.plugin.saveSettings();
 				}));
 	}
 }

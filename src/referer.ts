@@ -1,5 +1,5 @@
 import type { Plugin } from "obsidian";
-import { requestUrl } from "obsidian";
+import { requestUrl, Notice } from "obsidian";
 
 const MAX_CONCURRENT = 6;
 
@@ -10,6 +10,8 @@ const urlCache = new Map<string, string>();
 const inflight = new Set<string>();
 let activeCount = 0;
 let getRefererForUrl: ((url: string) => string) | null = null;
+let diagnosticMode = false;
+let lastDiagnosticNotice = 0;
 
 function isRemoteUrl(src: string): boolean {
 	return src.startsWith("http://") || src.startsWith("https://");
@@ -39,6 +41,15 @@ function fetchAndSet(img: HTMLImageElement, src: string, referer: string): void 
 			urlCache.delete(src);
 			img.src = src;
 			console.warn("[ImageReferer] Failed:", src.substring(0, 100), err);
+			if (diagnosticMode) {
+				const now = Date.now();
+				if (now - lastDiagnosticNotice > 3000) {
+					lastDiagnosticNotice = now;
+					let hostname = src;
+					try { hostname = new URL(src).hostname; } catch { /* keep src */ }
+					new Notice(`[ImageReferer] Failed: ${hostname} (referer: ${referer || "none"})`);
+				}
+			}
 		})
 		.finally(() => {
 			inflight.delete(src);
@@ -89,9 +100,11 @@ function scanImages(): void {
 export function registerRefererInterceptor(
 	_plugin: Plugin,
 	_resolveReferer: (url: string) => string,
+	_diagnosticMode: boolean,
 ): void {
 	console.warn("[ImageReferer] DOM interceptor starting...");
 	getRefererForUrl = _resolveReferer;
+	diagnosticMode = _diagnosticMode;
 
 	scanImages();
 
@@ -122,6 +135,8 @@ export function unregisterRefererInterceptor(): void {
 		clearTimeout(debounceTimer);
 		debounceTimer = null;
 	}
+	diagnosticMode = false;
+	lastDiagnosticNotice = 0;
 	for (const blobUrl of urlCache.values()) {
 		URL.revokeObjectURL(blobUrl);
 	}

@@ -3,22 +3,23 @@ import type { DomainRule } from "./settings";
 export function resolveReferer(
 	url: string,
 	domainRules: DomainRule[],
-	globalReferer: string,
 ): string {
 	let hostname: string;
 	try {
 		hostname = new URL(url).hostname;
 	} catch {
-		return globalReferer;
+		return "";
 	}
 
 	for (const rule of domainRules) {
 		if (!rule.domain || !rule.referer) continue;
+		if (rule.enabled === false) continue;
 		if (hostname === rule.domain) return rule.referer;
 	}
 
 	for (const rule of domainRules) {
 		if (!rule.domain || !rule.referer) continue;
+		if (rule.enabled === false) continue;
 		if (!rule.domain.startsWith("*.")) continue;
 		const suffix = rule.domain.slice(1);
 		if (hostname.endsWith(suffix) || hostname === rule.domain.slice(2)) {
@@ -26,5 +27,5 @@ export function resolveReferer(
 		}
 	}
 
-	return globalReferer;
+	return "";
 }
