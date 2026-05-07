@@ -30,7 +30,7 @@ export class ImageRefererSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName("Default Referer")
+			.setName("Default referer")
 			.setDesc("Fallback referer value for images that don't match any domain rule.")
 			.addText(text => text
 				.setPlaceholder("https://example.com")
@@ -40,11 +40,12 @@ export class ImageRefererSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		containerEl.createEl("h3", { text: "Domain rules" });
-		containerEl.createEl("p", {
-			text: "Configure per-domain referer values. Rules support exact match (e.g. i.imgur.com) or wildcard match (e.g. *.imgur.com).",
-			cls: "setting-item-description",
-		});
+		new Setting(containerEl)
+			.setName("Domain rules")
+			.setHeading()
+			.setDesc(
+				"Configure per-domain referer values. Use exact host names (i.imgur.com) or wildcards (*.imgur.com).",
+			);
 
 		const rulesContainer = containerEl.createDiv({ cls: "image-referer-rules" });
 
@@ -57,7 +58,7 @@ export class ImageRefererSettingTab extends PluginSettingTab {
 				new Setting(ruleEl)
 					.setName(`Rule ${index + 1}`)
 					.addText(text => text
-						.setPlaceholder("Domain (e.g. i.imgur.com or *.imgur.com)")
+						.setPlaceholder("Domain: i.imgur.com or *.imgur.com")
 						.setValue(rule.domain)
 						.onChange(async (value) => {
 							rule.domain = value;
